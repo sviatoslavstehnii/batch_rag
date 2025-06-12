@@ -11,6 +11,28 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password123
+    networks:
+      - app-network
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multimodal_rag_app
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
 
 volumes:
-  mongodb_data: 
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge 

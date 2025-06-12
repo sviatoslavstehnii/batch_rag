@@ -1,92 +1,83 @@
-# The Batch Article Scraper
+# Multimodal RAG Application
 
-This project scrapes articles from The Batch newsletter (https://www.deeplearning.ai/the-batch/) and stores them in MongoDB, with articles and images stored in separate collections.
+A powerful multimodal Retrieval-Augmented Generation (RAG) application that combines text and image processing capabilities. This application allows users to interact with a knowledge base through a modern Streamlit interface, leveraging advanced AI models for both text and image understanding.
 
-## Prerequisites
+## Project Overview
 
+This application implements a multimodal RAG system that:
+- Processes and stores both text and image data
+- Uses vector embeddings for efficient similarity search
+- Provides an intuitive web interface for querying the knowledge base
+- Supports multimodal queries (text and images)
+- Integrates with MongoDB for persistent storage
+- Utilizes FAISS for efficient vector similarity search
+
+## Tech Stack
+
+### Core Technologies
+- **Python 3.10+**: Main programming language
+- **Streamlit**: Web interface framework
+- **MongoDB**: Document database for storing articles and metadata
+- **FAISS**: Vector similarity search library
+- **Docker**: Containerization for easy deployment
+
+### Key Libraries
+- **sentence-transformers**: For text embeddings
+- **torch**: Deep learning framework
+- **transformers**: Hugging Face transformers library
+- **pymongo**: MongoDB Python driver
+- **streamlit**: Web application framework
+- **pillow**: Image processing
+- **numpy**: Numerical computations
+- **pandas**: Data manipulation
+
+## Installation
+
+### Prerequisites
 - Docker and Docker Compose
-- Python 3.8 or higher
-- pip (Python package manager)
+- Git
 
-## Setup
+### Setup Steps
 
-1. Clone this repository
-2. Create a `.env` file with the following content:
-   ```
-   MONGO_URI=mongodb://admin:password123@localhost:27017/
-   MONGO_DB_NAME=batch_articles
-   MONGO_COLLECTION_NAME=articles
-   MONGO_IMAGES_COLLECTION_NAME=images
-   MONGO_USERNAME=admin
-   MONGO_PASSWORD=password123
-   ```
-3. Install Python dependencies:
+1. Clone the repository:
    ```bash
-   pip install -r requirements.txt
+   git clone <repository-url>
+   cd multimodal-rag
    ```
 
-## Running the Application
+2. Create a `.env` file as shown in `.env.sample`
 
-1. Start MongoDB using Docker Compose:
+3. Start with:
+```streamlit run app/main.py```
+
+4. OR Build and start the containers:
    ```bash
-   docker-compose up -d
+   docker-compose up --build
    ```
 
-2. Run the scraper:
-   ```bash
-   # Normal scraping
-   python scrape_batch_articles.py
-   
-   # Clear database before scraping
-   python scrape_batch_articles.py --flush
-   ```
+## Usage
 
-## Command Line Options
+1. Access the application:
+   - Open your browser and navigate to `http://localhost:8501`
 
-- `--flush`: Clear all collections before scraping new data
+2. Using the Application:
+   - The main interface provides a search bar for text queries
+   - Upload images for visual search capabilities
+   - View search results with both text and image content
+   - Filter and sort results as needed
 
-## MongoDB Connection Details
+## Development
 
-- Host: localhost
-- Port: 27017
-- Username: admin
-- Password: password123
-- Database: batch_articles
-- Collections: 
-  - articles
-  - images
-
-## Data Structure
-
-### Articles Collection
-Each article document has the following structure:
-```json
-{
-    "title": "Article Title",
-    "date": "Publication Date",
-    "content": "Article Content",
-    "image_count": 2,
-    "scraped_at": "Timestamp of when the article was scraped"
-}
+### Project Structure
 ```
-
-### Images Collection
-Each image document has the following structure:
-```json
-{
-    "url": "Original image URL",
-    "data": "Base64 encoded image data",
-    "alt_text": "Image alt text",
-    "article_id": "Reference to the parent article's _id",
-    "scraped_at": "Timestamp of when the image was scraped"
-}
+multimodal-rag/
+├── app/                    # Main application code
+│   ├── main.py            # Streamlit application entry point
+│   ├── rag.py             # RAG implementation
+│   └── utils.py           # Utility functions
+├── data_ingestion/        # Data processing scripts
+├── vector_store/          # Vector storage implementation
+├── Dockerfile             # Container configuration
+├── docker-compose.yml     # Service orchestration
+└── requirements.txt       # Python dependencies
 ```
-
-## Notes
-
-- The scraper includes error handling for failed requests and article processing
-- Articles and images are stored in separate collections for better performance and management
-- Images are linked to their parent articles using the `article_id` field
-- The MongoDB container uses a named volume for data persistence
-- Environment variables can be customized in the `.env` file
-- Use the `--flush` option to clear existing data before scraping 
