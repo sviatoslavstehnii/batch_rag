@@ -57,6 +57,7 @@ This application implements a multimodal RAG system that:
 
 ## Usage
 
+
 1. Access the application:
    - Open your browser and navigate to `http://localhost:8501`
 
@@ -66,6 +67,8 @@ This application implements a multimodal RAG system that:
    - View search results with both text and image content
    - Filter and sort results as needed
 
+Video link of example usage:
+https://youtu.be/edpWhlrlNCc
 ## Development
 
 ### Project Structure
