@@ -13,7 +13,7 @@ import io
 # Add project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import build_prompt
+from utils import build_prompt, get_image_description
 from data_ingestion.config import (
     VECTOR_STORE_DIR,
     TEXT_EMBEDDING_MODEL,
@@ -45,21 +45,25 @@ class MultimodalRAG:
             self.metadata = json.load(f)
 
         # Load Gemini model
-        self.gemini_model = genai.Client(api_key="AIzaSyAa8GuRtQzbRnPriJgbwcohWTRz0fNy2L0")
+        self.gemini_model = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     
     
     
-    def generate_answer(self, query: str, image: Union[str, bytes, Image.Image]) -> str:
+    def generate_answer(self, query: str, image: Union[str, bytes, Image.Image]) -> Dict[str, Any]:
         """Generate an answer using Gemini based on retrieved content."""
         text_emb = None
         image_emb = None
         query_emb = None
         
-        if query:
-            text_emb = self.embed_text(query)
-        if image:
-            image_emb = self.embed_image(image)
+        image_description = None
         
+        
+        if query is not None:
+            text_emb = self.embed_text(query)
+        if image is not None:
+            image_emb = self.embed_image(image)
+            image_description = get_image_description(image_url=None, image_data=image)
+
         if text_emb is not None and image_emb is not None:
             query_emb = self.embed_multimodal(query, image)
         elif text_emb is not None:
@@ -70,14 +74,13 @@ class MultimodalRAG:
         # retrieve results
         context = self.search(query_emb)
         
+        
         with open("context.json", "w") as f:
             json.dump(context, f)
         
         # Create prompt with both text and image context
-        prompt = build_prompt(context, query)
+        prompt = build_prompt(context, query, image_description)
         contents = [prompt]
-        if image:
-            contents.append(image)
         
         try:
             # Generate response
@@ -85,9 +88,29 @@ class MultimodalRAG:
                 model="gemini-2.0-flash",
                 contents=contents
             )
-            return response.text
+            
+            # Extract URLs from context
+            text_urls = []
+            image_urls = []
+            for item in context:
+                metadata = item['metadata']
+                url = metadata.get('url', '')
+                if metadata['type'] == 'text' and url:
+                    text_urls.append(url)
+                elif metadata['type'] in ['image', 'image_description'] and url:
+                    image_urls.append(url)
+            
+            return {
+                'answer': response.text,
+                'text_sources': list(set(text_urls)),
+                'image_sources': list(set(image_urls))
+            }
         except Exception as e:
-            return f"Error generating answer: {str(e)}"
+            return {
+                'answer': f"Error generating answer: {str(e)}",
+                'text_sources': [],
+                'image_sources': []
+            }
 
     
     def embed_text(self, text: str) -> np.ndarray:
@@ -121,20 +144,31 @@ class MultimodalRAG:
         query_embedding = query_embedding / np.linalg.norm(query_embedding)
         query_embedding = query_embedding.reshape(1, -1).astype('float32')
         
-        # Search
-        distances, indices = self.index.search(query_embedding, self.top_k)
+        # Search for more items than needed to ensure we get enough of each type
+        search_k = self.top_k * 2
+        distances, indices = self.index.search(query_embedding, search_k)
         
-        # Get results
-        results = []
+        # Separate results by type
+        text_results = []
+        image_results = []
+        
         for dist, idx in zip(distances[0], indices[0]):
-            if idx != -1:
-                metadata = self.metadata[idx]
-                results.append({
-                    'metadata': metadata,
-                    'similarity_score': float(1 / (1 + dist)),
-                })
+            if idx == -1:
+                continue
+                
+            metadata = self.metadata[idx]
+            result = {
+                'metadata': metadata,
+                'similarity_score': float(1 / (1 + dist)),
+            }
+            
+            if metadata['type'] == 'text':
+                text_results.append(result)
+            else:
+                image_results.append(result)
         
-        return results
+        # return top k results +  top_k/2 images
+        return text_results[:self.top_k] + image_results[:self.top_k//2]
 
     
     def query_text(self, text: str) -> List[Dict[str, Any]]:

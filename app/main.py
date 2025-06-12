@@ -23,6 +23,14 @@ def display_chat_history():
             st.write(message["content"])
             if "image" in message:
                 st.image(message["image"], caption="Uploaded Image")
+            if "text_sources" in message and message["text_sources"]:
+                st.markdown("**Text Sources:**")
+                for url in message["text_sources"]:
+                    st.markdown(f"- [{url}]({url})")
+            if "image_sources" in message and message["image_sources"]:
+                st.markdown("**Image Sources:**")
+                for url in message["image_sources"]:
+                    st.markdown(f"- [{url}]({url})")
 
 def main():
     st.title("Multimodal RAG Chat")
@@ -67,7 +75,9 @@ def main():
         # Add assistant response to chat history
         st.session_state.chat_history.append({
             "role": "assistant",
-            "content": response
+            "content": response['answer'],
+            "text_sources": response['text_sources'],
+            "image_sources": response['image_sources']
         })
 
         # Rerun to update the chat display
